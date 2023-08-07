@@ -70,6 +70,9 @@ def button(update: Update, context: CallbackContext) -> None:
         else:
             context.user_data['cart'][query.data] = 1
 
+        # Rastrear el estado actual del carrito
+        logging.info(f"Current cart: {context.user_data['cart']}")  # <-- Add this line here
+
         total_price = calculate_total(context.user_data['cart'])
         query.edit_message_text(f"Has añadido {query.data} a tu carrito. Tu total hasta ahora es ${total_price:.2f}. ¿Deseas algo más?")
 
