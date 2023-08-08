@@ -53,7 +53,7 @@ def start(update: Update, context: CallbackContext) -> None:
     context.user_data['cart'] = {}
     
     # Inicializar el estado
-    context.user_data['state'] = None
+    context.user_data['state'] = 'initiated'
 
 
     update.message.reply_text(greeting_msg, reply_markup=reply_markup)
@@ -152,6 +152,11 @@ def get_gpt_response(prompt):
 
 # Función que maneja las respuestas de los usuarios:
 def handle_user_reply(update: Update, context: CallbackContext) -> None:
+
+    # Si el usuario acaba de iniciar el chat, ignoramos su mensaje y cambiamos el estado a None
+    if context.user_data.get('state') == 'initiated':
+        context.user_data['state'] = None
+        return
     
     # El bot está esperando una dirección:
     if context.user_data.get('state') == 'waiting_for_address':
