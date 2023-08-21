@@ -83,7 +83,8 @@ def request_payment_method(update: Update, context: CallbackContext) -> None:
         [InlineKeyboardButton("Tarjeta de débito", callback_data="payment_debit_card")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text("Por favor, selecciona tu método de pago:", reply_markup=reply_markup)
+    update.message.reply_text("¡Gracias por proporcionar tu dirección! Ahora, selecciona tu método de pago:",
+                              reply_markup=reply_markup)
 
 # Función para finalizar el pedido:
 def finalize_order(update: Update, context: CallbackContext) -> None:
@@ -156,6 +157,7 @@ def handle_user_reply(update: Update, context: CallbackContext) -> None:
     # Si el usuario acaba de iniciar el chat, ignoramos su mensaje y cambiamos el estado a None
     if context.user_data.get('state') == 'initiated':
         context.user_data['state'] = None
+        update.message.reply_text("Por favor, utiliza los botones del menú para seleccionar productos.")
         return
     
     # El bot está esperando una dirección:
@@ -166,7 +168,11 @@ def handle_user_reply(update: Update, context: CallbackContext) -> None:
         # Llama a la función que solicita el método de pago:
         # update.message.reply_text("¡Gracias por proporcionar tu dirección! Ahora selecciona tu método de pago:")
         request_payment_method(update, context)
-        
+    
+    # Si el estado es None o no existe, muestra el saludo inicial y el menú
+    elif not context.user_data.get('state'):
+        start(update, context)    
+    
     else:
         gpt_response = get_gpt_response(update.message.text)
         update.message.reply_text(gpt_response)
