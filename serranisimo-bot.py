@@ -18,13 +18,13 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 # Definición del diccionario de productos
 PRODUCTS = {
-    "Fritada": 10.00,
-    "Yahuarlocro": 9.50,
-    "Guatita": 9.50,
-    "Empanada de morocho": 2.00,
-    "Humita": 1.50,
-    "Coca-Cola": 1.50,
-    "Cerveza": 2.50
+    "Fritada 🐷": 10.00,
+    "Yahuarlocro 🐑": 9.50,
+    "Guatita 🐮": 9.50,
+    "Empanada de morocho 🥟": 2.00,
+    "Humita 🌽": 1.50,
+    "Coca-Cola 🥤": 1.50,
+    "Cerveza 🍺": 2.50
     }
 
 # Función para calcular el total del carrito
