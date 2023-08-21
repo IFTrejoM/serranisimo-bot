@@ -24,7 +24,7 @@ PRODUCTS = {
     "Humita": 1.50,
     "Coca-Cola": 1.50,
     "Cerveza": 2.50
-}
+    }
 
 # Función para calcular el total del carrito
 def calculate_total(cart):
@@ -132,7 +132,7 @@ def button(update: Update, context: CallbackContext) -> None:
 
     # Acción cuando se selecciona "No"
     elif query.data == "no":
-        query.edit_message_text("¡Gracias por tu pedido! Por favor proporciona tu dirección.")
+        query.edit_message_text(f"¡Gracias por tu pedido! Por favor, proporciona tu dirección.")
         context.user_data['state'] = 'waiting_for_address'
 
     # Acción cuando se selecciona un método de pago
@@ -181,8 +181,8 @@ def main() -> None:
     # Manejadores de botones:
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CallbackQueryHandler(button))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, start))
-    # dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_user_reply))
+    # dp.add_handler(MessageHandler(Filters.text & ~Filters.command, start))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_user_reply))
     
     # Manejador de mensajes de texto: texto
     # message_handler = MessageHandler(Filters.text & ~Filters.command, request_payment_method)
