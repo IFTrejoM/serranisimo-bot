@@ -18,29 +18,24 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 # Definición del diccionario de productos
 PRODUCTS = {
-    "Fritada": 10.00,
-    "Yahuarlocro": 9.50,
-    "Guatita": 9.50,
-    "Empanada de morocho": 2.00,
-    "Humita": 1.50,
-    "Coca-Cola": 1.50,
-    "Cerveza": 2.50
+    "Fritada 🐷": 10.00,
+    "Yahuarlocro 🐑": 9.50,
+    "Guatita 🐮": 9.50,
+    "Empanada de morocho 🥟": 2.00,
+    "Humita 🌽": 1.50,
+    "Coca-Cola 🥤": 1.50,
+    "Cerveza 🍺": 2.50
     }
 
-# Función para calcular el total del carrito
-def calculate_total(cart):
-    total = sum(PRODUCTS[item] * quantity for item, quantity in cart.items())
-    return total
-
-# Función que se ejecuta cuando un usuario inicia el bot
+# Función que se ejecuta cuando un usuario inicia el bot:
 def start(update: Update, context: CallbackContext) -> None:
     user_name = update.message.from_user.first_name
-    greeting_msg = f'¡Hola {user_name}! Bienvenido a Serranísimo. ¿En qué puedo ayudarte?'
+    greeting_msg = f'¡Hola, {user_name}! Bienvenido a Serranísimo 👨🏽‍🌾🤩 ¿En qué puedo ayudarte?'
 
-    # Botones de interacción
+    # Botones de interacción iniciales:
     keyboard = [
-        [InlineKeyboardButton("Menú", 
-                              callback_data="productos")]
+        [InlineKeyboardButton("Menú 😋", callback_data="productos"),
+        InlineKeyboardButton("Comentarios y sugerencias 🙋🏻‍♂️", callback_data="feedback")]
         ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -57,6 +52,38 @@ def start(update: Update, context: CallbackContext) -> None:
     context.user_data['state'] = 'initiated'
 
     update.message.reply_text(greeting_msg, reply_markup=reply_markup)
+
+def analyze_sentiment(text: str) -> str:
+    """
+    Analiza el sentimiento de un texto utilizando GPT.
+    """
+    # Formulamos una pregunta específica para el modelo en formato de chat
+    messages = [
+        {"role": "system", "content": "You are a highly trained sentiment analysis expert, specialized in assessing text messages from restaurant customers. \
+            Your expertise lies in distinguishing subtle nuances in feedback to accurately categorize sentiments. Use your expertise to provide the most precise sentiment evaluation possible."},
+        {"role": "user", "content": f"¿Cuál es el sentimiento general de este comentario? '{text}'"}
+    ]
+
+    # Enviamos la pregunta al modelo usando el endpoint de chat
+    response = openai.ChatCompletion.create(
+      model="gpt-3.5-turbo-0301",
+      messages=messages
+    )
+
+    # Procesamos la respuesta
+    sentiment_response = response.choices[0].message['content'].strip()
+
+    if "positivo" in sentiment_response:
+        return "positivo"
+    elif "negativo" in sentiment_response:
+        return "negativo"
+    else:
+        return "neutral"
+
+# Función para calcular el total del carrito:
+def calculate_total(cart):
+    total = sum(PRODUCTS[item] * quantity for item, quantity in cart.items())
+    return total
 
 # Función para mostrar los productos
 def display_products(query, context: CallbackContext) -> None:
@@ -120,22 +147,37 @@ def handle_user_reply(update: Update, context: CallbackContext) -> None:
     # Si el usuario acaba de iniciar el chat, ignoramos su mensaje y cambiamos el estado a None
     if context.user_data.get('state') == 'initiated':
         context.user_data['state'] = None
-        update.message.reply_text("Por favor, utiliza los botones del menú para seleccionar productos.")
+        update.message.reply_text("Por favor, utiliza los botones del menú para seleccionar productos 🥹")
         return
     
         # El bot está esperando una ubicación:
     elif context.user_data.get('state') == 'waiting_for_location':
         update.message.reply_text("Por favor, comparte tu ubicación utilizando el botón 'Clip' 📎 y seleccionando 'Ubicación' 📍")
         return
-    
+
+    # El bot está esperando feedback (felicitaciones o sugerencias):
+    elif context.user_data.get('state') == 'waiting_for_feedback':
+        feedback = update.message.text
+
+        # Usa la función existente para el análisis de sentimiento
+        sentiment = analyze_sentiment(feedback)
+        
+        if sentiment == "positivo":
+            update.message.reply_text("¡Gracias por tus amables palabras! Siempre trabajamos para brindarte el mejor servicio. 😊")
+        elif sentiment == "negativo":
+            update.message.reply_text("Lamentamos que no estés satisfecho. Un operador se comunicará contigo por este medio 👩🏻📲. Agradecemos tu feedback y trabajaremos en mejorar.")
+        else:
+            update.message.reply_text("Gracias por tu feedback. Siempre buscamos mejorar y valoramos tus comentarios. 👍")
+        
+        context.user_data['state'] = None  # Reset state after handling feedback
+
     # Si el estado es None o no existe, muestra el saludo inicial y el menú
     elif not context.user_data.get('state'):
         start(update, context)    
-    
+
     else:
         gpt_response = get_gpt_response(update.message.text)
         update.message.reply_text(gpt_response)
-        # update.message.reply_text("No estoy seguro de cómo manejar tu mensaje.")
 
 def get_gpt_response(prompt):
     """Genera una respuesta a la entrada del usuario utilizando GPT-4"""
@@ -166,8 +208,8 @@ def button(update: Update, context: CallbackContext) -> None:
 
         # Botones para seleccionar más productos o pasar a las siguientes opciones:
         keyboard = [
-            [InlineKeyboardButton("¡Por su puesto!", callback_data="yes"),
-             InlineKeyboardButton("Por hoy ya no...", callback_data="no")]
+            [InlineKeyboardButton("¡Por su puesto! 😎", callback_data="yes"),
+             InlineKeyboardButton("Por hoy ya no... 😳", callback_data="no")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -175,6 +217,11 @@ def button(update: Update, context: CallbackContext) -> None:
             f"Has añadido {query.data} a tu carrito. Hasta el momento, tu total es ${total_price:.2f}. ¿Deseas algo más?", 
             reply_markup=reply_markup
             )
+
+    # Acción cuando se selecciona "Comentarios y sugerencias:"
+    elif query.data == "feedback":
+        query.edit_message_text("Por favor, comparte tus comentarios o sugerencias con nosotros: 💬")
+        context.user_data['state'] = 'waiting_for_feedback'
 
     # Acción cuando se selecciona "Menú"
     elif query.data == "productos":
