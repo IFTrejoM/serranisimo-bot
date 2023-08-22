@@ -4,7 +4,6 @@ from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQuery
 import openai
 from dotenv import load_dotenv
 import os
-import telegram
 
 # Cargar las variables del .env
 load_dotenv()
@@ -16,7 +15,7 @@ openai.api_key = OPENAI_API_KEY
 # Inicialización de logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-# Definición del diccionario de productos
+# Definición del diccionario de productos:
 PRODUCTS = {
     "Fritada 🐷": 10.00,
     "Yahuarlocro 🐑": 9.50,
@@ -53,9 +52,10 @@ def start(update: Update, context: CallbackContext) -> None:
 
     update.message.reply_text(greeting_msg, reply_markup=reply_markup)
 
+# Función para análisis de sentimiento con GPT-3.5 en la sección "Comentarios y recomendaciones":
 def analyze_sentiment(text: str) -> str:
     """
-    Analiza el sentimiento de un texto utilizando GPT.
+    Analiza el sentimiento de un texto utilizando GPT-3.5.
     """
     # Formulamos una pregunta específica para el modelo en formato de chat
     messages = [
@@ -80,12 +80,27 @@ def analyze_sentiment(text: str) -> str:
     else:
         return "neutral"
 
+# Función para manejar el feedback del usuario en "Comentarios y recomendaciones":
+def handle_feedback(update: Update, context: CallbackContext, feedback: str) -> None:
+    """ Maneja el feedback del usuario y envía una respuesta basada en el sentimiento """
+    
+    sentiment = analyze_sentiment(feedback)
+    
+    if sentiment == "positivo":
+        update.message.reply_text("¡Gracias por tus amables palabras! Siempre trabajamos para brindarte el mejor servicio. 😊")
+    elif sentiment == "negativo":
+        update.message.reply_text("Lamentamos que no estés satisfecho. Un operador se comunicará contigo por este medio 👩🏻📲. Agradecemos tu feedback y trabajaremos en mejorar.")
+    else:
+        update.message.reply_text("Gracias por tu feedback. Siempre buscamos mejorar y valoramos tus comentarios. 👍")
+    
+    context.user_data['state'] = None  # Reset state after handling feedback
+
 # Función para calcular el total del carrito:
 def calculate_total(cart):
     total = sum(PRODUCTS[item] * quantity for item, quantity in cart.items())
     return total
 
-# Función para mostrar los productos
+# Función para mostrar los productos del menú:
 def display_products(query, context: CallbackContext) -> None:
     """Despliega la botonera de productos en el chat."""
     message = "Aquí tienes nuestro menú:\n\n"
@@ -96,7 +111,7 @@ def display_products(query, context: CallbackContext) -> None:
     reply_markup = InlineKeyboardMarkup(keyboard)
     query.message.reply_text(message, reply_markup=reply_markup)
 
-# Función para solicitar la dirección del cliente:
+# Función para solicitar la localización del cliente:
 def request_location(update: Update, context: CallbackContext) -> None:
     """Solicita la localización al usuario después de elegir 'Por hoy ya no...' en la opción de agregar más productos"""
     update.callback_query.message.reply_text(
@@ -144,13 +159,13 @@ def finalize_order(query: Update, context: CallbackContext) -> None:
 # Función que maneja las respuestas de los usuarios:
 def handle_user_reply(update: Update, context: CallbackContext) -> None:
 
-    # Si el usuario acaba de iniciar el chat, ignoramos su mensaje y cambiamos el estado a None
+    # Si el usuario acaba de iniciar el chat, ignoramos su mensaje y cambiamos el estado a None:
     if context.user_data.get('state') == 'initiated':
         context.user_data['state'] = None
         update.message.reply_text("Por favor, utiliza los botones del menú para seleccionar productos 🥹")
         return
     
-        # El bot está esperando una ubicación:
+     # El bot está esperando una ubicación:
     elif context.user_data.get('state') == 'waiting_for_location':
         update.message.reply_text("Por favor, comparte tu ubicación utilizando el botón 'Clip' 📎 y seleccionando 'Ubicación' 📍")
         return
@@ -158,20 +173,10 @@ def handle_user_reply(update: Update, context: CallbackContext) -> None:
     # El bot está esperando feedback (felicitaciones o sugerencias):
     elif context.user_data.get('state') == 'waiting_for_feedback':
         feedback = update.message.text
+        handle_feedback(update, context, feedback)
+        return
 
-        # Usa la función existente para el análisis de sentimiento
-        sentiment = analyze_sentiment(feedback)
-        
-        if sentiment == "positivo":
-            update.message.reply_text("¡Gracias por tus amables palabras! Siempre trabajamos para brindarte el mejor servicio. 😊")
-        elif sentiment == "negativo":
-            update.message.reply_text("Lamentamos que no estés satisfecho. Un operador se comunicará contigo por este medio 👩🏻📲. Agradecemos tu feedback y trabajaremos en mejorar.")
-        else:
-            update.message.reply_text("Gracias por tu feedback. Siempre buscamos mejorar y valoramos tus comentarios. 👍")
-        
-        context.user_data['state'] = None  # Reset state after handling feedback
-
-    # Si el estado es None o no existe, muestra el saludo inicial y el menú
+    # Si el estado es None o no existe, muestra el saludo inicial y el menú:
     elif not context.user_data.get('state'):
         start(update, context)    
 
