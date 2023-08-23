@@ -26,8 +26,8 @@ PRODUCTS = {
     "Higos con queso 🍨": 2.50,
     "Pristiños con miel 🥞": 2.50,
     "Jugo de frutas 🧃": 2.00,
-    "Coca-Cola 🥤": 1.50,
-    "Cerveza 🍺": 2.50
+    "Fioravanti 🥤": 1.50,
+    "Cerveza Pilsener 🍺": 2.50
     }
 
 # Función que se ejecuta cuando un usuario inicia el bot:
@@ -152,7 +152,7 @@ def request_location(update: Update, context: CallbackContext) -> None:
     
     # Genera el mensaje de total de la orden y solicita localización:
     update.callback_query.message.reply_text(
-        f"¡Gracias por tu pedido! El valor total de tu orden es ${total_invoice:.2f}. \
+        f"¡Gracias por tu pedido! El valor total de tu orden es ${total_invoice:.2f}. + $1.50 por el envío a domicilio. \
             Por favor, comparte tu ubicación utilizando el botón 'Clip' 📎 y seleccionando 'Ubicación' 📍",
         reply_markup=ReplyKeyboardMarkup(
             [[KeyboardButton(text="Enviar ubicación", request_location=True)]],
