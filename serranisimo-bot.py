@@ -74,10 +74,8 @@ def analyze_sentiment(text: str) -> str:
       model="gpt-3.5-turbo-0301",
       messages=messages
     )
-
     # Procesamos la respuesta
     sentiment_response = response.choices[0].message['content'].strip()
-
     if "positive" in sentiment_response:
         return "positive"
     elif "negative" in sentiment_response:
@@ -109,23 +107,53 @@ def calculate_total(cart):
     total = sum(PRODUCTS[item] * quantity for item, quantity in cart.items())
     return total
 
-# Función para mostrar los productos del menú:
-def display_products(query, context: CallbackContext) -> None:
-    """Despliega la botonera de productos en el chat."""
+# Función que despliega la botonera del menú en el chat.
+def display_menu(query, context: CallbackContext) -> None:
+    """
+    Despliega la botonera del menú en el chat.
+    """
     message = "Aquí tienes nuestro menú:\n\n"
     for product, price in PRODUCTS.items():
-        message += f"{product}: ${price}\n"
-
-    keyboard = [[InlineKeyboardButton(product, callback_data=product)] for product in PRODUCTS.keys()]
+        message += f"{product}: ${price:.2f}\n"
+    
+    # Lista de botones de los productos + botón "VER CARRITO 🛒"
+    product_buttons = [[InlineKeyboardButton(product, callback_data=product)] for product in PRODUCTS.keys()]
+    cart_button = [InlineKeyboardButton("VER CARRITO 🛒", callback_data="vercarrito")]
+    keyboard = product_buttons + [cart_button]
+    
     reply_markup = InlineKeyboardMarkup(keyboard)
+    query.message.reply_text(message, reply_markup=reply_markup)
+
+# Función que controla el botón del carrito:
+def view_cart(query, context: CallbackContext) -> None:
+    """
+    Función que controla el botón del carrito
+    """
+    cart = context.user_data.get('cart', {})
+    if not cart:
+        message = "Tu carrito está vacío... 😔 ¡llénalo de cosas deliciosas! 🤤"
+    else:
+        message = "Contenido de tu carrito: 🛒\n\n"
+        for product, quantity in cart.items():
+            message += f"{product}: {quantity}\n"
+
+    # Botón para volver al menú
+    keyboard = [[InlineKeyboardButton("Volver al Menú 🔄", callback_data="menu")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
     query.message.reply_text(message, reply_markup=reply_markup)
 
 # Función para solicitar la localización del cliente:
 def request_location(update: Update, context: CallbackContext) -> None:
     """Solicita la localización al usuario después de elegir 'Por hoy ya no...' en la opción de agregar más productos"""
     
+    # Calcula el valor total de la orden:
+    total_invoice = calculate_total(context.user_data['cart'])
+    
+    # Genera el mensaje de total de la orden y solicita localización:
     update.callback_query.message.reply_text(
-        "¡Gracias por tu pedido! Por favor, comparte tu ubicación utilizando el botón 'Clip' 📎 y seleccionando 'Ubicación' 📍",
+        f"¡Gracias por tu pedido! El valor total de tu orden es ${total_invoice:.2f}. \
+            Por favor, comparte tu ubicación utilizando el botón 'Clip' 📎 y seleccionando 'Ubicación' 📍",
         reply_markup=ReplyKeyboardMarkup(
             [[KeyboardButton(text="Enviar ubicación", request_location=True)]],
             one_time_keyboard=True
@@ -227,15 +255,22 @@ def button(update: Update, context: CallbackContext) -> None:
 
     # Acción cuando se selecciona "Menú"
     elif query.data == "productos":
-        display_products(query, context)
+        display_menu(query, context)
         
     # Acción cuando se selecciona "Sí"
     elif query.data == "yes":
-        display_products(query, context)
+        display_menu(query, context)
 
     # Acción cuando se selecciona "No"
     elif query.data == "no":
         request_location(update, context)
+        
+    # Acción cuando se selecciona "Ver carrito"
+    if query.data == "vercarrito":
+        view_cart(query, context)
+
+    elif query.data == "menu":
+        display_menu(query, context)
 
     # Acción cuando se selecciona un método de pago
     elif query.data.startswith("payment_"):
