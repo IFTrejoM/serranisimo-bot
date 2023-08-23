@@ -4,7 +4,6 @@ from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQuery
 import openai
 from dotenv import load_dotenv
 import os
-import telegram
 
 # Cargar las variables del .env
 load_dotenv()
@@ -16,49 +15,101 @@ openai.api_key = OPENAI_API_KEY
 # Inicialización de logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-# Definición del diccionario de productos
+# Definición del diccionario de productos:
 PRODUCTS = {
-    "Fritada": 10.00,
-    "Yahuarlocro": 9.50,
-    "Guatita": 9.50,
-    "Empanada de morocho": 2.00,
-    "Humita": 1.50,
-    "Coca-Cola": 1.50,
-    "Cerveza": 2.50
+    "Fritada 🐷": 10.00,
+    "Yahuarlocro 🐑": 9.50,
+    "Guatita 🐮": 9.50,
+    "Seco de chivo 🐐": 9.50,
+    "Empanada de morocho 🥟": 2.00,
+    "Humita 🌽": 1.50,
+    "Higos con queso 🍨": 2.50,
+    "Pristiños con miel 🥞": 2.50,
+    "Jugo de frutas 🧃": 2.00,
+    "Coca-Cola 🥤": 1.50,
+    "Cerveza 🍺": 2.50
     }
 
-# Función para calcular el total del carrito
-def calculate_total(cart):
-    total = sum(PRODUCTS[item] * quantity for item, quantity in cart.items())
-    return total
-
-# Función que se ejecuta cuando un usuario inicia el bot
+# Función que se ejecuta cuando un usuario inicia el bot:
 def start(update: Update, context: CallbackContext) -> None:
     user_name = update.message.from_user.first_name
-    greeting_msg = f'¡Hola {user_name}! Bienvenido a Serranísimo. ¿En qué puedo ayudarte?'
+    greeting_msg = f'¡Hola, {user_name}! Bienvenido al bot de Serranísimo 👨🏽‍🌾🤩 ¿En qué podemos ayudarte?'
 
-    # Botones de interacción
+    # Botones de interacción iniciales:
     keyboard = [
-        [InlineKeyboardButton("Menú", 
-                              callback_data="productos")]
+        [InlineKeyboardButton("Menú 😋", callback_data="productos"),
+        InlineKeyboardButton("Comentarios y sugerencias 🙋🏻‍♂️", callback_data="feedback")]
         ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     # Enviar una imagen
-    context.bot.send_photo(
-        chat_id=update.effective_chat.id,
-        photo=open('images/profile.jpg', 'rb')
+    with open('images/logo.png', 'rb') as photo:
+        context.bot.send_photo(
+            chat_id=update.effective_chat.id,
+            photo=photo
         )
 
     # Inicializar el carrito
     context.user_data['cart'] = {}
-    
+
     # Inicializar el estado
     context.user_data['state'] = 'initiated'
 
     update.message.reply_text(greeting_msg, reply_markup=reply_markup)
 
-# Función para mostrar los productos
+# Función para análisis de sentimiento con GPT-3.5 en la sección "Comentarios y recomendaciones":
+def analyze_sentiment(text: str) -> str:
+    """
+    Analiza el sentimiento de un texto utilizando GPT-3.5.
+    """
+    # Formulamos una pregunta específica para el modelo en formato de chat
+    messages = [
+        {"role": "system", "content": "You are a highly trained sentiment analysis expert, specialized in assessing text messages from restaurant customers. \
+            Your expertise lies in distinguishing subtle nuances in feedback to accurately categorize sentiments. Use your expertise to provide the most precise sentiment evaluation possible."},
+        {"role": "user", "content": f"¿What is the general feeling of this comment? '{text}'"}
+    ]
+
+    # Enviamos la pregunta al modelo usando el endpoint de chat
+    response = openai.ChatCompletion.create(
+      model="gpt-3.5-turbo-0301",
+      messages=messages
+    )
+
+    # Procesamos la respuesta
+    sentiment_response = response.choices[0].message['content'].strip()
+
+    if "positive" in sentiment_response:
+        return "positive"
+    elif "negative" in sentiment_response:
+        return "negative"
+    else:
+        return "neutral"
+
+# Función para manejar el feedback del usuario en "Comentarios y recomendaciones":
+def handle_feedback(update: Update, context: CallbackContext, feedback: str) -> None:
+    """ Maneja el feedback del usuario y envía una respuesta basada en el sentimiento """
+    
+    user_name = update.message.from_user.first_name
+    
+    # Invoca a la función que analiza sentimientos:
+    sentiment = analyze_sentiment(feedback)
+    
+    # Devuelve un mensaje dependiendo del resultado de analyze_sentiment():
+    if sentiment == "positive":
+        update.message.reply_text(f"¡Gracias por tus amables palabras, {user_name}! Trabajamos para brindarte el mejor servicio. 😊")
+    elif sentiment == "negative":
+        update.message.reply_text(f"Lamentamos que no estés satisfecho, {user_name}. Una operadora se comunicará contigo por este medio 👩🏻📲. Agradecemos tu feedback y trabajaremos en mejorar.")
+    else:
+        update.message.reply_text(f"¡Gracias por tu feedback, {user_name}!. Siempre buscamos mejorar y valoramos tus comentarios. 👍")
+    
+    context.user_data['state'] = None
+
+# Función para calcular el total del carrito:
+def calculate_total(cart):
+    total = sum(PRODUCTS[item] * quantity for item, quantity in cart.items())
+    return total
+
+# Función para mostrar los productos del menú:
 def display_products(query, context: CallbackContext) -> None:
     """Despliega la botonera de productos en el chat."""
     message = "Aquí tienes nuestro menú:\n\n"
@@ -69,9 +120,10 @@ def display_products(query, context: CallbackContext) -> None:
     reply_markup = InlineKeyboardMarkup(keyboard)
     query.message.reply_text(message, reply_markup=reply_markup)
 
-# Función para solicitar la dirección del cliente:
+# Función para solicitar la localización del cliente:
 def request_location(update: Update, context: CallbackContext) -> None:
     """Solicita la localización al usuario después de elegir 'Por hoy ya no...' en la opción de agregar más productos"""
+    
     update.callback_query.message.reply_text(
         "¡Gracias por tu pedido! Por favor, comparte tu ubicación utilizando el botón 'Clip' 📎 y seleccionando 'Ubicación' 📍",
         reply_markup=ReplyKeyboardMarkup(
@@ -86,7 +138,7 @@ def handle_location(update: Update, context: CallbackContext) -> None:
     latitude = user_location.latitude
     longitude = user_location.longitude
     
-    # Guardar la ubicación (puedes almacenarla en context.user_data o donde prefieras)
+    # Guardar la ubicación en context.user_data:
     context.user_data['location'] = {
         'latitude': latitude,
         'longitude': longitude
@@ -107,50 +159,42 @@ def request_payment_method(update: Update, context: CallbackContext) -> None:
     update.message.reply_text("¡Gracias por proporcionar tu ubicación! Ahora, selecciona tu método de pago: 💲",
                               reply_markup=reply_markup)
 
-# Función para finalizar el pedido:
-def finalize_order(query: Update, context: CallbackContext) -> None:
-    """Envía un mensaje final al usuario agradeciendo por su pedido y proporcionando detalles sobre la entrega"""
-    # query = update.callback_query
-    query.answer()
-    query.edit_message_text("¡¡Muchas gracias! ¡Nuestro motorista 🛵 estará contigo en 30-40 minutos ⏳ ten listo tu método de pago! ¡Disfruta tu comida!")
-
 # Función que maneja las respuestas de los usuarios:
 def handle_user_reply(update: Update, context: CallbackContext) -> None:
 
-    # Si el usuario acaba de iniciar el chat, ignoramos su mensaje y cambiamos el estado a None
+    user_name = update.message.from_user.first_name
+
+    # Si el usuario acaba de iniciar el chat, ignoramos su mensaje y cambiamos el estado a None:
     if context.user_data.get('state') == 'initiated':
         context.user_data['state'] = None
-        update.message.reply_text("Por favor, utiliza los botones del menú para seleccionar productos.")
+        update.message.reply_text("Por favor, utiliza los botones del menú para seleccionar productos")
         return
     
-        # El bot está esperando una ubicación:
+     # El bot está esperando una ubicación:
     elif context.user_data.get('state') == 'waiting_for_location':
-        update.message.reply_text("Por favor, comparte tu ubicación utilizando el botón 'Clip' 📎 y seleccionando 'Ubicación' 📍")
+        update.message.reply_text(f"Por favor {user_name}, comparte tu ubicación utilizando el botón 'Clip' 📎 y seleccionando 'Ubicación' 📍")
         return
-    
-    # Si el estado es None o no existe, muestra el saludo inicial y el menú
+
+    # El bot está esperando feedback (felicitaciones o sugerencias):
+    elif context.user_data.get('state') == 'waiting_for_feedback':
+        feedback = update.message.text
+        handle_feedback(update, context, feedback)
+        return
+
+    # Si el estado es None o no existe, muestra el saludo inicial y el menú:
     elif not context.user_data.get('state'):
         start(update, context)    
-    
-    else:
-        gpt_response = get_gpt_response(update.message.text)
-        update.message.reply_text(gpt_response)
-        # update.message.reply_text("No estoy seguro de cómo manejar tu mensaje.")
-
-def get_gpt_response(prompt):
-    """Genera una respuesta a la entrada del usuario utilizando GPT-4"""
-    response = openai.Completion.create(
-        engine="text-davinci-003",
-        prompt=prompt,
-        temperature=0.5,
-        max_tokens=100
-    )
-    return response.choices[0].text.strip()
 
 # Función para manejar las interacciones con los botones
 def button(update: Update, context: CallbackContext) -> None:
+    """"Función para manejar las interacciones con los botones."""
+
     query = update.callback_query
+
+    user_name = query.from_user.first_name  # Accede al nombre del usuario desde aquí
+
     query.answer()
+    
     logging.info(f"Received callback data: {query.data}")
 
     # Acción cuando se selecciona un producto
@@ -166,8 +210,8 @@ def button(update: Update, context: CallbackContext) -> None:
 
         # Botones para seleccionar más productos o pasar a las siguientes opciones:
         keyboard = [
-            [InlineKeyboardButton("¡Por su puesto!", callback_data="yes"),
-             InlineKeyboardButton("Por hoy ya no...", callback_data="no")]
+            [InlineKeyboardButton("¡Por su puesto! 😎", callback_data="yes"),
+             InlineKeyboardButton("Por hoy ya no... 😳", callback_data="no")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -175,6 +219,11 @@ def button(update: Update, context: CallbackContext) -> None:
             f"Has añadido {query.data} a tu carrito. Hasta el momento, tu total es ${total_price:.2f}. ¿Deseas algo más?", 
             reply_markup=reply_markup
             )
+
+    # Acción cuando se selecciona "Comentarios y sugerencias:"
+    elif query.data == "feedback":
+        query.edit_message_text(f"Por favor {user_name}, comparte tus comentarios o sugerencias con nosotros: 💬")
+        context.user_data['state'] = 'waiting_for_feedback'
 
     # Acción cuando se selecciona "Menú"
     elif query.data == "productos":
@@ -191,10 +240,7 @@ def button(update: Update, context: CallbackContext) -> None:
     # Acción cuando se selecciona un método de pago
     elif query.data.startswith("payment_"):
         context.user_data['payment_method'] = query.data
-        query.edit_message_text("¡Muchas gracias! ¡Nuestro motorista 🛵 estará contigo en 30-40 minutos ⏳ ten listo tu método de pago! ¡Disfruta tu comida!")
-        # finalize_order(query, context)
-        
-        # Cambia el estado a 'initiated' para reiniciar el flujo en el siguiente mensaje del usuario
+        query.edit_message_text(f"¡Muchas gracias, {user_name}! ¡Nuestro motorista 🛵 estará contigo en 30-40 minutos ⏳ ten listo tu método de pago! ¡Disfruta tu comida!")
         context.user_data['state'] = None
 
 # Función principal
