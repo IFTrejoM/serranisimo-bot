@@ -1,9 +1,13 @@
+import os
+import pickle
+import openai
 import logging
+from dotenv import load_dotenv
+from langchain.chat_models import ChatOpenAI
+from langchain.memory import ConversationBufferMemory
+from langchain.chains import ConversationalRetrievalChain
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler, MessageHandler, Filters
-import openai
-from dotenv import load_dotenv
-import os
 
 # Cargar las variables del .env
 load_dotenv()
@@ -11,6 +15,7 @@ TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 openai.api_key = OPENAI_API_KEY
+VECTORSTORE_FILE = 'serranisimo-script.pkl'
 
 # Inicialización de logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -38,8 +43,10 @@ def start(update: Update, context: CallbackContext) -> None:
     # Botones de interacción iniciales:
     keyboard = [
         [InlineKeyboardButton("Menú 😋", callback_data="productos"),
-        InlineKeyboardButton("Comentarios y sugerencias 🙋🏻‍♂️", callback_data="feedback")]
+        InlineKeyboardButton("Comentarios y sugerencias 🙋🏻‍♂️", callback_data="feedback"),
+        InlineKeyboardButton("¡Chatea con nuestra IA! 🤖", callback_data="ia")]
         ]
+    
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     # Enviar una imagen
@@ -62,7 +69,7 @@ def analyze_sentiment(text: str) -> str:
     """
     Analiza el sentimiento de un texto utilizando GPT-3.5.
     """
-    # Formulamos una pregunta específica para el modelo en formato de chat
+    # Formulamos un prompt para el modelo, en formato de chat:
     messages = [
         {"role": "system", "content": "You are a highly trained sentiment analysis expert, specialized in assessing text messages from restaurant customers. \
             Your expertise lies in distinguishing subtle nuances in feedback to accurately categorize sentiments. Use your expertise to provide the most precise sentiment evaluation possible."},
@@ -82,6 +89,29 @@ def analyze_sentiment(text: str) -> str:
         return "negative"
     else:
         return "neutral"
+
+def create_conversation_chain():
+    """
+    Establece y devuelve la cadena de conversación del bot IA utilizando el archivo VECTORSTORE_FILE.
+    La cadena de conversación se genera a partir de un vectorstore previamente procesado,
+    utilizando el modelo ChatOpenAI y una memoria buffer de conversación. 
+    """
+    with open(VECTORSTORE_FILE, 'rb') as f:
+        vectorstore = pickle.load(f)
+
+    llm = ChatOpenAI()
+    memory = ConversationBufferMemory(
+        memory_key='chat_history',
+        return_messages=True
+        )
+
+    conversation_chain = ConversationalRetrievalChain.from_llm(
+        llm=llm,
+        retriever=vectorstore.as_retriever(),
+        memory=memory
+        )
+
+    return conversation_chain
 
 # Función para manejar el feedback del usuario en "Comentarios y recomendaciones":
 def handle_feedback(update: Update, context: CallbackContext, feedback: str) -> None:
@@ -209,6 +239,12 @@ def handle_user_reply(update: Update, context: CallbackContext) -> None:
         handle_feedback(update, context, feedback)
         return
 
+    # El bot está esperando preguntas en la interfaz del chat con la IA:
+    elif context.user_data.get('state') == 'chatting_with_ai':
+        
+      ########################################  
+        
+
     # Si el estado es None o no existe, muestra el saludo inicial y el menú:
     elif not context.user_data.get('state'):
         start(update, context)    
@@ -248,10 +284,15 @@ def button(update: Update, context: CallbackContext) -> None:
             reply_markup=reply_markup
             )
 
-    # Acción cuando se selecciona "Comentarios y sugerencias:"
+    # Acción cuando se selecciona "Comentarios y sugerencias":
     elif query.data == "feedback":
         query.edit_message_text(f"Por favor {user_name}, comparte tus comentarios o sugerencias con nosotros: 💬")
         context.user_data['state'] = 'waiting_for_feedback'
+
+    # Acción cuando se selecciona "¡Chatea con nuestra IA! 🤖":
+    elif query.data == "ia":
+        query.edit_message_text("¡Estás chateando la IA de Serranísimo! 🤖\nEscribe cualquier pregunta sobre el restaurante y te responderé.")
+        context.user_data['state'] = 'chatting_with_ai'
 
     # Acción cuando se selecciona "Menú"
     elif query.data == "productos":
