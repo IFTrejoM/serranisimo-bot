@@ -1,6 +1,5 @@
-# Run as python pdf_vectorizer.py -i C:\pdf_file.pdf -o C:\pdf_file_vectors.pkl
+# Run as python pdf_vectorizer.py -i route\to\file\pdf_file.pdf -o route\to\save\pdf_file_vectors.pkl
 # python pdf_vectorizer.py -i serranisimo-script.pdf -o serranisimo-script.pkl
-
 
 import argparse
 from PyPDF2 import PdfReader
@@ -10,7 +9,6 @@ from langchain.vectorstores import FAISS
 import pickle
 from dotenv import load_dotenv
 import os
-#import openai
 
 # Cargar las variables del .env
 load_dotenv()
@@ -51,14 +49,19 @@ def create_vector_store(text_chunks):
     
     return vectorstore
 
-def vectorize_pdf(pdf_path, vector_output_path):
+def vectorize_pdf(pdf_path, output_path):
     raw_text = get_text_from_pdf(pdf_path)
     text_chunks = get_text_chunks(raw_text)
     vector_store = create_vector_store(text_chunks)
-    
-    # Guardar los vectores
-    with open(vector_output_path, 'wb') as f:
-        pickle.dump(vector_store, f)
+
+    data = {
+        "vector_store": vector_store,
+        "text_chunks": text_chunks
+    }
+
+    # Guardar los datos
+    with open(output_path, 'wb') as f:
+        pickle.dump(data, f)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Vectorize a PDF.")
