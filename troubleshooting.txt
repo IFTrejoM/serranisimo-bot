@@ -1,0 +1,6 @@
+Windows Powershell
+
+cd your_python_path/site-packages/faiss
+New-Item -ItemType SymbolicLink -Path "swigfaiss_avx2.py" -Target "swigfaiss.py"
+
+Tomado de: https://github.com/kyamagu/faiss-wheels/issues/39

@@ -14,10 +14,11 @@ load_dotenv()
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-openai.api_key = OPENAI_API_KEY
 VECTORSTORE_FILE = 'serranisimo-script.pkl'
 
-# Inicialización de logging
+openai.api_key = OPENAI_API_KEY
+
+# Configura el sistema de logging para mostrar mensajes con formato detallado y nivel INFO.
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 # Definición del diccionario de productos:
@@ -38,7 +39,7 @@ PRODUCTS = {
 # Función que se ejecuta cuando un usuario inicia el bot:
 def start(update: Update, context: CallbackContext) -> None:
     user_name = update.message.from_user.first_name
-    greeting_msg = f'¡Hola, {user_name}! Bienvenido al bot de Serranísimo 👨🏽‍🌾🤩 ¿En qué podemos ayudarte?'
+    greeting_msg = f'¡Hola, {user_name}! Bienvenido al bot de Serranísimo, "Delicias de la sierra ecuatoriana" 👨🏽‍🌾🤩 ¿En qué podemos ayudarte?'
 
     # Botones de interacción iniciales:
     keyboard = [
@@ -115,7 +116,9 @@ def create_conversation_chain():
 
 # Función para manejar el feedback del usuario en "Comentarios y recomendaciones":
 def handle_feedback(update: Update, context: CallbackContext, feedback: str) -> None:
-    """ Maneja el feedback del usuario y envía una respuesta basada en el sentimiento """
+    """
+    Maneja el feedback del usuario y envía una respuesta basada en el sentimiento
+    """
     
     user_name = update.message.from_user.first_name
     
@@ -126,7 +129,7 @@ def handle_feedback(update: Update, context: CallbackContext, feedback: str) -> 
     if sentiment == "positive":
         update.message.reply_text(f"¡Gracias por tus amables palabras, {user_name}! Trabajamos para brindarte el mejor servicio. 😊")
     elif sentiment == "negative":
-        update.message.reply_text(f"Lamentamos que no estés satisfecho, {user_name}. Una operadora se comunicará contigo por este medio 👩🏻📲. Agradecemos tu feedback y trabajaremos en mejorar.")
+        update.message.reply_text(f"Lamentamos tu insatisfacción, {user_name}. Una operadora se comunicará contigo por este medio 👩🏻📲. Agradecemos tu feedback y trabajaremos en mejorar.")
     else:
         update.message.reply_text(f"¡Gracias por tu feedback, {user_name}!. Siempre buscamos mejorar y valoramos tus comentarios. 👍")
     
@@ -182,8 +185,7 @@ def request_location(update: Update, context: CallbackContext) -> None:
     
     # Genera el mensaje de total de la orden y solicita localización:
     update.callback_query.message.reply_text(
-        f"¡Gracias por tu pedido! El valor total de tu orden es ${total_invoice:.2f}. + $1.50 por el envío a domicilio. \
-            Por favor, comparte tu ubicación utilizando el botón 'Clip' 📎 y seleccionando 'Ubicación' 📍",
+        f"¡Gracias por tu pedido! El valor total de tu orden es ${total_invoice:.2f} + $1.50 por el envío a domicilio. Por favor, comparte tu ubicación utilizando el botón 'Clip' 📎 y seleccionando 'Ubicación' 📍",
         reply_markup=ReplyKeyboardMarkup(
             [[KeyboardButton(text="Enviar ubicación", request_location=True)]],
             one_time_keyboard=True
@@ -241,21 +243,23 @@ def handle_user_reply(update: Update, context: CallbackContext) -> None:
 
     # El bot está esperando preguntas en la interfaz del chat con la IA:
     elif context.user_data.get('state') == 'chatting_with_ai':
+        global conversation_chain
+        user_question = update.message.text
+        answer = conversation_chain({'question': user_question})
+        update.message.reply_text(answer['chat_history'][-1].content)
         
-      ########################################  
-        
-
     # Si el estado es None o no existe, muestra el saludo inicial y el menú:
     elif not context.user_data.get('state'):
         start(update, context)    
 
 # Función para manejar las interacciones con los botones
-def button(update: Update, context: CallbackContext) -> None:
+def handle_button_click(update: Update, context: CallbackContext) -> None:
     """"Función para manejar las interacciones con los botones."""
 
     query = update.callback_query
 
-    user_name = query.from_user.first_name  # Accede al nombre del usuario desde aquí
+    # Accede al nombre del usuario:
+    user_name = query.from_user.first_name
 
     query.answer()
     
@@ -280,7 +284,7 @@ def button(update: Update, context: CallbackContext) -> None:
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         query.edit_message_text(
-            f"Has añadido {query.data} a tu carrito. Hasta el momento, tu total es ${total_price:.2f}. ¿Deseas algo más?", 
+            f"Has añadido {query.data} a tu carrito. Hasta el momento, tu total es ${total_price:.2f}... ¿Deseas algo más?", 
             reply_markup=reply_markup
             )
 
@@ -291,7 +295,9 @@ def button(update: Update, context: CallbackContext) -> None:
 
     # Acción cuando se selecciona "¡Chatea con nuestra IA! 🤖":
     elif query.data == "ia":
-        query.edit_message_text("¡Estás chateando la IA de Serranísimo! 🤖\nEscribe cualquier pregunta sobre el restaurante y te responderé.")
+        global conversation_chain
+        conversation_chain = create_conversation_chain()
+        query.edit_message_text(text="¡Estás chateando con nuestra IA! 🤖 ¿En qué podemos ayudarte?")
         context.user_data['state'] = 'chatting_with_ai'
 
     # Acción cuando se selecciona "Menú"
@@ -327,7 +333,7 @@ def main() -> None:
 
     # Manejadores de botones:
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CallbackQueryHandler(button))
+    dp.add_handler(CallbackQueryHandler(handle_button_click))
     dp.add_handler(MessageHandler(Filters.location, handle_location))
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_user_reply))
 
