@@ -15,6 +15,7 @@ TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 VECTORSTORE_FILE = 'serranisimo-script.pkl'
+AI_TEMPERATURE = 0.6
 
 openai.api_key = OPENAI_API_KEY
 
@@ -91,6 +92,7 @@ def analyze_sentiment(text: str) -> str:
     else:
         return "neutral"
 
+# Función que crea una cadena de conversación contextuada para el chat con IA:
 def create_conversation_chain():
     """
     Establece y devuelve la cadena de conversación del bot IA utilizando el archivo VECTORSTORE_FILE.
@@ -100,7 +102,8 @@ def create_conversation_chain():
     with open(VECTORSTORE_FILE, 'rb') as f:
         vectorstore = pickle.load(f)
 
-    llm = ChatOpenAI()
+    llm = ChatOpenAI(temperature=AI_TEMPERATURE)
+    
     memory = ConversationBufferMemory(
         memory_key='chat_history',
         return_messages=True

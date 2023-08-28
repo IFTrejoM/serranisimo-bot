@@ -54,14 +54,9 @@ def vectorize_pdf(pdf_path, output_path):
     text_chunks = get_text_chunks(raw_text)
     vector_store = create_vector_store(text_chunks)
 
-    data = {
-        "vector_store": vector_store,
-        "text_chunks": text_chunks
-    }
-
     # Guardar los datos
     with open(output_path, 'wb') as f:
-        pickle.dump(data, f)
+        pickle.dump(vector_store, f)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Vectorize a PDF.")
