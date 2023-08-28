@@ -1,32 +1,58 @@
-# serranisimo-bot
-serranísimo-bot is a Telegram-GPT-4-powered chatbot created for "Serranísimo", a fictional ecuadorian restaurant.
+# Serranísimo Chatbot README
 
-Serranísimo Telegram Bot
+### Descripción:
+Este es un bot para Telegram que permite a los usuarios interactuar con el menú de "Serranísimo, Delicias de la sierra ecuatoriana". A través de este bot, los usuarios pueden ver el menú, agregar productos a su carrito, proporcionar comentarios y sugerencias, chatear con una IA y finalizar su pedido compartiendo su ubicación y eligiendo un método de pago.
 
-Description
+### Configuración:
 
-The Serranísimo Telegram bot is a shopping assistant designed to enhance the customer experience at our (fictional) restaurant. Clients can interact with the bot to view the menu, place orders, and provide the necessary delivery information. Moreover, the Serranísimo bot harnesses the power of OpenAI's GPT-4 to interact intelligently and efficiently with users, offering tailored responses to inquiries.
+1. **Dependencias**:
+   - `os`
+   - `pickle`
+   - `openai`
+   - `logging`
+   - `dotenv`
+   - `telegram`
+   - `langchain`
 
-Serranísimo Telegram Bot is an project created by Iván Trejo Moya, for the AI Master at ThreePoints.
+2. **Variables de entorno**: Asegúrese de tener un archivo `.env` en la misma carpeta que su script con las siguientes variables:
+   - `TELEGRAM_TOKEN`: Tu token de bot de Telegram.
+   - `OPENAI_API_KEY`: Tu API key de OpenAI.
 
-Features
+3. **Vectorstore**: El archivo 'serranisimo-script.pkl' debe estar presente en el mismo directorio que este script. Se utiliza para gestionar el chat con la IA.
 
-    Conversation Initiation: When a conversation is started with the bot, it provides a personalized greeting and showcases a button to access the restaurant's menu.
+### Funcionalidad:
 
-    Menu Visualization: Users can view the entire restaurant menu along with the prices of each dish.
+- **Inicio del bot**:
+  Al iniciar el bot, el usuario recibe un saludo y se presenta con tres opciones: ver el menú, proporcionar comentarios y sugerencias o chatear con la IA.
 
-    Order Placement: The bot allows users to add multiple products to their cart. Each time a product is added, the bot updates the cart's total in real-time.
+- **Menú**:
+  Los usuarios pueden ver el menú y los precios de los productos. Al seleccionar un producto, se agrega al carrito del usuario. Los usuarios pueden revisar el contenido de su carrito en cualquier momento.
 
-    Delivery Information Provision: Once the user is done adding products to their cart, the bot prompts for the delivery address.
+- **Feedback**:
+  La sección de comentarios y sugerencias permite a los usuarios proporcionar feedback sobre el servicio. El bot utiliza GPT-3.5 para analizar el sentimiento del comentario y responder adecuadamente.
 
-    Payment Method Selection: Users can choose their preferred payment method from several options, including cash, credit card, and debit card.
+- **Chat con IA**:
+  Los usuarios pueden hacer preguntas a una IA entrenada. El bot utiliza una combinación de `langchain` y OpenAI para gestionar esta interacción.
 
-    Order Completion: At the end of the ordering process, the bot sends out a thank-you message and provides details about the delivery.
+- **Finalización del pedido**:
+  Una vez que los usuarios hayan terminado de agregar productos a su carrito, pueden finalizar su pedido compartiendo su ubicación y eligiendo un método de pago.
 
-    Intelligent Interaction with OpenAI GPT-4: The bot employs OpenAI's GPT-4 to interact smartly with users, furnishing personalized responses to their queries.
+### Instrucciones de uso:
 
-Implementation
+1. **Inicio**:
+   Inicie una conversación con el bot en Telegram. Se le saludará y se le presentará con las opciones iniciales.
 
-The Serranísimo Telegram bot is implemented in Python using the python-telegram-bot library and OpenAI's API for intelligent interaction. The bot's functionalities are controlled through a series of commands and responses to messages and callback queries.
+2. **Menú**:
+   Seleccione la opción "Menú" para ver y agregar productos a su carrito. Use los botones proporcionados para interactuar con el bot.
 
-If you have any questions or suggestions about the Serranísimo Telegram bot, feel free to open an issue on this repository. We're always keen to improve and deliver the best experience for our customers.
+3. **Feedback**:
+   Seleccione "Comentarios y sugerencias" si desea proporcionar feedback. Escriba su comentario y el bot responderá adecuadamente.
+
+4. **Chat con IA**:
+   Si selecciona "¡Chatea con nuestra IA!", puede hacer preguntas a la IA. Escriba su pregunta y espere la respuesta.
+
+5. **Finalización del pedido**:
+   Si ha terminado de agregar productos a su carrito, siga las instrucciones para compartir su ubicación y elegir un método de pago.
+
+### Contribuciones:
+Si tiene alguna mejora o corrección para este bot, no dude en hacer un pull request o abrir un issue en GitHub.

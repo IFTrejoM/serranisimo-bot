@@ -15,6 +15,7 @@ TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 VECTORSTORE_FILE = 'serranisimo-script.pkl'
+AI_TEMPERATURE = 0.6
 
 openai.api_key = OPENAI_API_KEY
 
@@ -101,7 +102,7 @@ def create_conversation_chain():
     with open(VECTORSTORE_FILE, 'rb') as f:
         vectorstore = pickle.load(f)
 
-    llm = ChatOpenAI(temperature=0.4)
+    llm = ChatOpenAI(temperature=AI_TEMPERATURE)
     
     memory = ConversationBufferMemory(
         memory_key='chat_history',
@@ -111,7 +112,6 @@ def create_conversation_chain():
     conversation_chain = ConversationalRetrievalChain.from_llm(
         llm=llm,
         retriever=vectorstore.as_retriever(),
-        # condense_question_prompt=PromptTemplate.from_template("""You are a kind heart-warmed restaurant chatbot. I need you to kindly and precisely response the queries made by the users about Serranísimo restaurant."""),
         memory=memory
         )
 
