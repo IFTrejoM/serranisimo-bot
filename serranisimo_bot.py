@@ -91,6 +91,7 @@ def analyze_sentiment(text: str) -> str:
     else:
         return "neutral"
 
+# Función que crea una cadena de conversación contextuada para el chat con IA:
 def create_conversation_chain():
     """
     Establece y devuelve la cadena de conversación del bot IA utilizando el archivo VECTORSTORE_FILE.
@@ -100,7 +101,8 @@ def create_conversation_chain():
     with open(VECTORSTORE_FILE, 'rb') as f:
         vectorstore = pickle.load(f)
 
-    llm = ChatOpenAI()
+    llm = ChatOpenAI(temperature=0.4)
+    
     memory = ConversationBufferMemory(
         memory_key='chat_history',
         return_messages=True
@@ -109,6 +111,7 @@ def create_conversation_chain():
     conversation_chain = ConversationalRetrievalChain.from_llm(
         llm=llm,
         retriever=vectorstore.as_retriever(),
+        # condense_question_prompt=PromptTemplate.from_template("""You are a kind heart-warmed restaurant chatbot. I need you to kindly and precisely response the queries made by the users about Serranísimo restaurant."""),
         memory=memory
         )
 
